@@ -4,7 +4,12 @@ import { Input } from './ui/input';
 import { Card, CardContent } from './ui/card';
 import { DollarSign, Target, Users } from 'lucide-react';
 
-const MockCrashGame = () => {
+interface MockCrashGameProps {
+  onGameStateChange: (status: 'waiting' | 'predicting' | 'success' | 'failed', crashPoint?: number) => void;
+  prediction: number | null;
+}
+
+const MockCrashGame = ({ onGameStateChange, prediction }: MockCrashGameProps) => {
   const [multiplier, setMultiplier] = useState(1.0);
   const [gameState, setGameState] = useState('waiting'); // waiting, running, crashed
   const [crashPoint, setCrashPoint] = useState(0);
@@ -28,27 +33,26 @@ const MockCrashGame = () => {
   }, [gameState]);
 
   useEffect(() => {
-    if (gameState === 'running' && multiplier >= crashPoint) {
+    if (gameState === 'running' && multiplier >= crashPoint && crashPoint > 0) {
       setGameState('crashed');
       setHistory(h => [crashPoint, ...h.slice(0, 10)]);
+      const success = prediction !== null && crashPoint >= prediction;
+      onGameStateChange(success ? 'success' : 'failed', crashPoint);
     }
-  }, [multiplier, crashPoint, gameState]);
+  }, [multiplier, crashPoint, gameState, prediction, onGameStateChange]);
 
   const startGame = () => {
-    setCrashPoint(Math.random() * 10 + 1);
+    const newCrashPoint = Math.random() * 10 + 1;
+    setCrashPoint(newCrashPoint);
     setMultiplier(1.0);
     setGameState('running');
+    onGameStateChange('predicting');
 
+    // Reset to waiting after a delay
     setTimeout(() => {
-        if(gameState !== 'crashed') {
-            setGameState('waiting');
-        }
-    }, 15000) // 15s timeout for game round
-  };
-
-  const handleBet = () => {
-    // In a real game, this would place a bet
-    startGame();
+      setGameState('waiting');
+      onGameStateChange('waiting');
+    }, 15000);
   };
 
   return (
@@ -109,13 +113,12 @@ const MockCrashGame = () => {
               </div>
             </div>
             <Button 
-              onClick={handleBet}
+              onClick={startGame}
               disabled={gameState === 'running'}
               className="w-full text-lg font-bold py-6 bg-green-600 hover:bg-green-700 disabled:bg-gray-500"
             >
               {gameState === 'running' ? 'Running...' : 'Place Bet'}
             </Button>
-            <div className="text-center text-xs text-gray-500">Next round starts in 5s</div>
           </CardContent>
         </Card>
         

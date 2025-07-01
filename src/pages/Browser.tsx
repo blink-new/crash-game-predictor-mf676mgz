@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Lock, RefreshCw, ArrowLeft, ArrowRight, Home, Star } from 'lucide-react';
 import PredictionBar from '../components/PredictionBar';
 import MockCrashGame from '../components/MockCrashGame';
@@ -6,15 +6,15 @@ import MockCrashGame from '../components/MockCrashGame';
 const sites = {
   'crash-game.io': {
     title: 'CyberCrash',
-    component: <MockCrashGame />,
+    component: MockCrashGame,
   },
   'faucetpay.io': {
     title: 'FaucetPay',
-    component: <div className="text-white">Welcome to the FaucetPay simulation!</div>,
+    component: () => <div className="text-white p-8">Welcome to the FaucetPay simulation! Crash game not available on this site.</div>,
   },
   'bc.game': {
     title: 'BC.Game',
-    component: <div className="text-white">Welcome to the BC.Game simulation!</div>,
+    component: () => <div className="text-white p-8">Welcome to the BC.Game simulation! Crash game not available on this site.</div>,
   },
 };
 
@@ -22,15 +22,29 @@ export default function Browser() {
   const [url, setUrl] = useState('crash-game.io');
   const [history, setHistory] = useState(['crash-game.io']);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const [prediction, setPrediction] = useState<number | null>(null);
+  const [predictionStatus, setPredictionStatus] = useState<'waiting' | 'predicting' | 'success' | 'failed'>('waiting');
+
+  const handleGameStateChange = useCallback((status: 'waiting' | 'predicting' | 'success' | 'failed', crashPoint?: number) => {
+    setPredictionStatus(status);
+    if (status === 'predicting') {
+      // Generate a new prediction when the game starts
+      setPrediction(Math.random() * 5 + 1.5);
+    } else if (status === 'success' || status === 'failed') {
+      // Keep the prediction displayed until the next round
+      console.log(`Game ended with crash at: ${crashPoint}`);
+    } else {
+      // Clear prediction when waiting for the next round
+      setPrediction(null);
+    }
+  }, []);
 
   const navigate = (newUrl: string) => {
-    if (newUrl in sites) {
-      const newHistory = history.slice(0, historyIndex + 1);
-      newHistory.push(newUrl);
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-      setUrl(newUrl);
-    }
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newUrl);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    setUrl(newUrl);
   };
 
   const goBack = () => {
@@ -47,11 +61,11 @@ export default function Browser() {
     }
   };
 
-  const activeSite = sites[url as keyof typeof sites];
+  const ActiveSiteComponent = sites[url as keyof typeof sites]?.component;
 
   return (
     <div className="h-screen flex flex-col p-4 space-y-4">
-      <PredictionBar />
+      <PredictionBar prediction={prediction} status={predictionStatus} />
       <div className="flex-grow flex flex-col bg-slate-800/50 border border-purple-700/30 rounded-lg shadow-2xl shadow-purple-900/20 overflow-hidden">
         {/* Browser Chrome */}
         <div className="flex-shrink-0 h-14 bg-slate-900/80 backdrop-blur-md border-b border-purple-700/30 flex items-center px-4 space-x-2">
@@ -84,8 +98,8 @@ export default function Browser() {
 
         {/* Browser Content */}
         <div className="flex-grow p-4 overflow-y-auto">
-          {activeSite ? (
-            activeSite.component
+          {ActiveSiteComponent ? (
+            <ActiveSiteComponent onGameStateChange={handleGameStateChange} prediction={prediction} />
           ) : (
             <div className="text-white text-center p-8">
               <h2 className="text-2xl font-bold">Site not found</h2>

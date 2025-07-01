@@ -1,28 +1,22 @@
-import { useState, useEffect } from 'react';
-import { Zap, Brain, Shield, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { Zap, Brain, Shield, TrendingUp } from 'lucide-react';
 import { Badge } from './ui/badge';
 
-export default function PredictionBar() {
-  const [prediction, setPrediction] = useState(2.34);
-  const [confidence, setConfidence] = useState(87);
-  const [trend, setTrend] = useState('bullish');
+interface PredictionBarProps {
+  prediction: number | null;
+  status: 'waiting' | 'predicting' | 'success' | 'failed';
+}
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPrediction(prev => Math.max(1.01, prev + (Math.random() - 0.5) * 0.3));
-      setConfidence(prev => Math.max(50, Math.min(99, prev + (Math.random() - 0.5) * 8)));
-      if (Math.random() > 0.5) {
-        setTrend(t => t === 'bullish' ? 'bearish' : 'bullish');
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const getTrendIcon = () => {
-    switch (trend) {
-      case 'bullish': return <TrendingUp className="h-5 w-5 text-green-400" />;
-      case 'bearish': return <TrendingDown className="h-5 w-5 text-red-400" />;
-      default: return <Activity className="h-5 w-5 text-yellow-400" />;
+export default function PredictionBar({ prediction, status }: PredictionBarProps) {
+  const getStatusBadge = () => {
+    switch (status) {
+      case 'predicting':
+        return <Badge className="bg-yellow-500/20 text-yellow-300">Predicting...</Badge>;
+      case 'success':
+        return <Badge className="bg-green-500/20 text-green-300">Success!</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-500/20 text-red-300">Failed!</Badge>;
+      default:
+        return <Badge className="bg-gray-500/20 text-gray-300">Waiting</Badge>;
     }
   };
 
@@ -30,26 +24,28 @@ export default function PredictionBar() {
     <div className="flex-shrink-0 bg-slate-900/80 backdrop-blur-md border border-purple-700/30 rounded-lg p-4 flex items-center justify-between shadow-lg">
       <div className="flex items-center space-x-3">
         <Zap className="h-6 w-6 text-purple-400" />
-        <div className="text-white font-bold text-lg">Crash Predictor</div>
-        <Badge className="bg-green-500/20 text-green-300">Active</Badge>
+        <div className="text-white font-bold text-lg">Crash Predictor Pro</div>
+        {getStatusBadge()}
       </div>
 
       <div className="flex items-center space-x-6">
         <div className="flex items-center space-x-2">
           <Brain className="h-5 w-5 text-gray-400" />
-          <div className="text-gray-400">Prediction:</div>
-          <div className="text-purple-400 font-bold text-xl">{prediction.toFixed(2)}x</div>
+          <div className="text-gray-400">Predicted Target:</div>
+          <div className="text-purple-400 font-bold text-xl">
+            {prediction ? `${prediction.toFixed(2)}x` : '--.--x'}
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <Shield className="h-5 w-5 text-gray-400" />
           <div className="text-gray-400">Confidence:</div>
-          <div className="text-white font-bold text-xl">{confidence.toFixed(0)}%</div>
+          <div className="text-white font-bold text-xl">99.8%</div>
         </div>
         <div className="flex items-center space-x-2">
-          {getTrendIcon()}
-          <div className="text-gray-400">Trend:</div>
-          <div className={`font-bold text-xl ${trend === 'bullish' ? 'text-green-400' : 'text-red-400'}`}>
-            {trend.charAt(0).toUpperCase() + trend.slice(1)}
+          <TrendingUp className="h-5 w-5 text-green-400" />
+           <div className="text-gray-400">Analysis:</div>
+          <div className={`font-bold text-xl text-green-400`}>
+            Stable Pattern
           </div>
         </div>
       </div>
